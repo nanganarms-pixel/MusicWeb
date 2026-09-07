@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Sonata</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+<div class="login-page">
+  <svg class="stave" width="100%" height="100%" preserveAspectRatio="none">
+    <line x1="0" y1="20%" x2="100%" y2="20%" stroke="#e3b23c" stroke-width="1"></line>
+    <line x1="0" y1="24%" x2="100%" y2="24%" stroke="#e3b23c" stroke-width="1"></line>
+    <line x1="0" y1="28%" x2="100%" y2="28%" stroke="#e3b23c" stroke-width="1"></line>
+    <line x1="0" y1="76%" x2="100%" y2="76%" stroke="#6f5aa6" stroke-width="1"></line>
+    <line x1="0" y1="80%" x2="100%" y2="80%" stroke="#6f5aa6" stroke-width="1"></line>
+    <line x1="0" y1="84%" x2="100%" y2="84%" stroke="#6f5aa6" stroke-width="1"></line>
+  </svg>
+
+  <div class="login-card">
+    <div class="brand">
+      <span class="brand-mark">Sonata</span>
+      <span class="brand-note">♪</span>
+    </div>
+    <p class="login-tagline">Sonata Sa mga Dawg.</p>
+
+    <form id="login-form" novalidate>
+      <div class="field">
+        <label for="name">Name</label>
+        <input id="name" name="name" type="text" autocomplete="name" placeholder="Enter Name" />
+      </div>
+      <div class="field">
+        <label for="studentID">StudentID</label>
+        <input id="studentID" name="studentID" type="studentID" autocomplete="current-studentID" placeholder="Enter Student Id" />
+      </div>
+      <p class="login-error" id="login-error"></p>
+      <button type="submit" class="btn-primary">Log in</button>
+    </form>
+
+    <p class="login-hint">Enter Imo Name ug Student ID dawg.</p>
+  </div>
+</div>
+
+<script src="script.js"></script>
+<script>
+  const form = document.getElementById("login-form");
+  const errorEl = document.getElementById("login-error");
+
+  
+  if (localStorage.getItem("sonata_user")) {
+    window.location.href = "sonata.html";
+  }
+
+  form.addEventListener("submit", function (e) {
+    e.preventDefault();
+    const name = document.getElementById("name").value.trim();
+    const studentID = document.getElementById("studentID").value;
+
+    if (!name || !studentID) {
+      errorEl.textContent = "Enter a username and student id to continue.";
+      return;
+    }
+
+    localStorage.setItem("sonata_user", name);
+    window.location.href = "sonata.html";
+  });
+</script>
+</body>
+</html>

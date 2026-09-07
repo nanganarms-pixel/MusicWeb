@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Sonata</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand">
+      <span class="brand-mark" style="font-size:22px;">Sonata</span>
+      <span class="brand-note">♪</span>
+    </div>
+    <p class="nav-label">Your albums</p>
+    <ul class="album-nav" id="album-nav"></ul>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <h1 class="greeting" id="greeting">Good listening, <span id="user-name">friend</span></h1>
+      <button class="btn-logout" id="logout-btn">Log out</button>
+    </div>
+
+    <div class="content">
+
+      <div class="album-grid-wrap" id="grid-wrap">
+        <h2 class="section-title">Your five albums</h2>
+        <div class="album-grid" id="album-grid"></div>
+      </div>
+
+      <div class="album-detail" id="album-detail">
+        <button class="back-link" id="back-btn">&larr; Back to all albums</button>
+        <div class="album-header">
+          <div class="album-cover" id="detail-cover"></div>
+          <div class="album-header-meta">
+            <p class="eyebrow">Album</p>
+            <h2 id="detail-title"></h2>
+            <p class="artist-line" id="detail-artist"></p>
+          </div>
+        </div>
+        <ul class="track-list" id="track-list"></ul>
+      </div>
+
+    </div>
+  </main>
+
+  <audio id="audio-el" preload="metadata"></audio>
+
+  <footer class="player-bar">
+    <div class="now-playing">
+      <div class="now-cover" id="now-cover" style="background: var(--surface-3);"></div>
+      <div class="now-text">
+        <div class="now-title" id="now-title">Nothing playing yet</div>
+        <div class="now-artist" id="now-artist">Pick a song from an album</div>
+      </div>
+    </div>
+
+    <div class="player-center">
+      <div class="transport">
+        <button class="icon-btn" id="prev-btn" title="Previous" aria-label="Previous track">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M3 2h2v12H3V2zm3.5 6L14 2v12L6.5 8z"/></svg>
+        </button>
+        <button class="play-toggle" id="play-btn" title="Play" aria-label="Play">
+          <svg id="play-icon" width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M3 2l11 6-11 6V2z"/></svg>
+        </button>
+        <button class="icon-btn" id="next-btn" title="Next" aria-label="Next track">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M13 2h-2v12h2V2zM9.5 8L2 2v12l7.5-6z"/></svg>
+        </button>
+      </div>
+      <div class="progress-row">
+        <span class="time" id="time-current">0:00</span>
+        <div class="progress-track" id="progress-track">
+          <div class="progress-fill" id="progress-fill"></div>
+        </div>
+        <span class="time end" id="time-end">0:00</span>
+      </div>
+    </div>
+
+    <div class="player-right">
+      <span class="preview-note" id="source-note">🎵 preview tone — add your files</span>
+      <div class="volume-row">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" class="icon-btn"><path d="M9 2L4.5 5.5H1v5h3.5L9 14V2z"/></svg>
+        <div class="volume-track" id="volume-track">
+          <div class="volume-fill" id="volume-fill"></div>
+        </div>
+      </div>
+    </div>
+  </footer>
+</div>
+
+<script src="script.js"></script>
+<script>
+  /* ---------- Auth guard ---------- */
+  const currentUser = requireLogin();
+  document.getElementById("user-name").textContent = currentUser || "friend";
+  document.getElementById("logout-btn").addEventListener("click", logout);
+
+  /* ---------- Elements ---------- */
+  const albumNav = document.getElementById("album-nav");
+  const albumGrid = document.getElementById("album-grid");
+  const gridWrap = document.getElementById("grid-wrap");
+  const albumDetail = document.getElementById("album-detail");
+  const backBtn = document.getElementById("back-btn");
+  const detailCover = document.getElementById("detail-cover");
+  const detailTitle = document.getElementById("detail-title");
+  const detailArtist = document.getElementById("detail-artist");
+  const trackList = document.getElementById("track-list");
+
+  const nowCover = document.getElementById("now-cover");
+  const nowTitle = document.getElementById("now-title");
+  const nowArtist = document.getElementById("now-artist");
+  const playBtn = document.getElementById("play-btn");
+  const playIcon = document.getElementById("play-icon");
+  const progressTrack = document.getElementById("progress-track");
+  const progressFill = document.getElementById("progress-fill");
+  const timeCurrent = document.getElementById("time-current");
+  const timeEnd = document.getElementById("time-end");
+  const volumeTrack = document.getElementById("volume-track");
+  const volumeFill = document.getElementById("volume-fill");
+  const prevBtn = document.getElementById("prev-btn");
+  const nextBtn = document.getElementById("next-btn");
+
+  /* ---------- Render sidebar + grid ---------- */
+  function gradient(a) {
+    return `linear-gradient(145deg, ${a.color1}, ${a.color2})`;
+  }
+
+  ALBUMS.forEach((album, index) => {
+    // Sidebar nav item
+    const li = document.createElement("li");
+    const btn = document.createElement("button");
+    const swatchStyle = album.image ? `background: url('${album.image}') center/cover;` : `background:${gradient(album)};`;
+    btn.innerHTML = `<span class="mini-swatch" style="${swatchStyle}"></span> ${album.artist}`;
+    btn.addEventListener("click", () => openAlbum(index));
+    li.appendChild(btn);
+    albumNav.appendChild(li);
+
+    // Grid card
+    const card = document.createElement("button");
+    card.className = "album-card";
+    const coverStyle = album.image ? `background: url('${album.image}') center/cover;` : `background:${gradient(album)};`;
+    const coverText = album.image ? "" : album.initials;
+
+    card.innerHTML = `
+      <div class="album-cover" style="${coverStyle}">${coverText}</div>
+      <p class="album-card-title">${album.title}</p>
+      <p class="album-card-sub">${album.artist} · ${album.tracks.length} songs</p>
+    `;
+    card.addEventListener("click", () => openAlbum(index));
+    albumGrid.appendChild(card);
+  });
+
+  /* ---------- Album detail view ---------- */
+  let activeAlbumIndex = null;
+
+  function openAlbum(index) {
+    activeAlbumIndex = index;
+    const album = ALBUMS[index];
+
+    gridWrap.classList.add("hidden");
+    albumDetail.classList.add("visible");
+
+    if (album.image) {
+      detailCover.style.background = `url('${album.image}') center/cover`;
+      detailCover.textContent = "";
+    } else {
+      detailCover.style.background = gradient(album);
+      detailCover.textContent = album.initials;
+    }
+
+    detailTitle.textContent = album.title;
+    detailArtist.textContent = `${album.artist} · ${album.year} · ${album.tracks.length} songs`;
+
+    trackList.innerHTML = "";
+    album.tracks.forEach((track, i) => {
+      const li = document.createElement("li");
+      li.className = "track-row";
+      li.dataset.trackIndex = i;
+      li.innerHTML = `
+        <span class="track-index">${i + 1}</span>
+        <span class="track-title">${track.title}</span>
+        <span class="track-duration">${track.duration}</span>
+        <button class="track-play" aria-label="Play ${track.title}">
+          <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><path d="M3 2l11 6-11 6V2z"/></svg>
+        </button>
+      `;
+      li.addEventListener("click", () => playTrack(index, i));
+      trackList.appendChild(li);
+    });
+
+    // Highlight nav
+    document.querySelectorAll(".album-nav button").forEach((b, i) => {
+      b.classList.toggle("active", i === index);
+    });
+
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  backBtn.addEventListener("click", () => {
+    albumDetail.classList.remove("visible");
+    gridWrap.classList.remove("hidden");
+  });
+
+  const audioEl = document.getElementById("audio-el");
+  let audioCtx = null;
+  let oscillator = null;
+  let gainNode = null;
+  let usingTone = false;
+  let isPlaying = false;
+  let currentAlbum = 0;
+  let currentTrack = 0;
+  let elapsed = 0;
+  let totalDuration = 0;
+  let tickInterval = null;
+  let volume = 0.7;
+
+  volumeFill.style.width = `${volume * 100}%`;
+  audioEl.volume = volume;
+
+  function stopTone() {
+    if (oscillator) {
+      try { oscillator.stop(); } catch (e) {}
+      oscillator.disconnect();
+      oscillator = null;
+    }
+    if (gainNode) {
+      gainNode.disconnect();
+      gainNode = null;
+    }
+  }
+
+  function startTone(freq) {
+    if (!audioCtx) {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    stopTone();
+    oscillator = audioCtx.createOscillator();
+    gainNode = audioCtx.createGain();
+    oscillator.type = "sine";
+    oscillator.frequency.value = freq;
+    gainNode.gain.value = volume * 0.15;
+    oscillator.connect(gainNode).connect(audioCtx.destination);
+    oscillator.start();
+  }
+
+  function fallbackToTone() {
+    usingTone = true;
+    totalDuration = durationToSeconds(ALBUMS[currentAlbum].tracks[currentTrack].duration);
+    timeEnd.textContent = ALBUMS[currentAlbum].tracks[currentTrack].duration;
+    elapsed = 0;
+    startTone(ALBUMS[currentAlbum].tracks[currentTrack].freq);
+    setPlayingUI(true);
+    clearInterval(tickInterval);
+    tickInterval = setInterval(() => {
+      elapsed += 0.25;
+      if (elapsed >= totalDuration) { nextTrackAuto(); return; }
+      updateProgressUI();
+    }, 250);
+  }
+
+  /* ---- shared UI helpers ---- */
+  function setPlayingUI(playing) {
+    isPlaying = playing;
+    playIcon.innerHTML = playing
+      ? '<rect x="3" y="2" width="3.5" height="12"></rect><rect x="9.5" y="2" width="3.5" height="12"></rect>'
+      : '<path d="M3 2l11 6-11 6V2z"></path>';
+    playBtn.setAttribute("aria-label", playing ? "Pause" : "Play");
+  }
+
+  function updateProgressUI() {
+    const pct = totalDuration ? Math.min(100, (elapsed / totalDuration) * 100) : 0;
+    progressFill.style.width = `${pct}%`;
+    timeCurrent.textContent = secondsToTime(elapsed);
+  }
+
+  function highlightPlayingRow() {
+    document.querySelectorAll(".track-row").forEach((row) => {
+      const isCurrent =
+        activeAlbumIndex === currentAlbum &&
+        Number(row.dataset.trackIndex) === currentTrack;
+      row.classList.toggle("playing", isCurrent);
+    });
+  }
+
+  function playTrack(albumIndex, trackIndex) {
+    currentAlbum = albumIndex;
+    currentTrack = trackIndex;
+    const album = ALBUMS[albumIndex];
+    const track = album.tracks[trackIndex];
+
+    clearInterval(tickInterval);
+    stopTone();
+    audioEl.pause();
+    usingTone = false;
+    elapsed = 0;
+    totalDuration = durationToSeconds(track.duration);
+    timeEnd.textContent = track.duration;
+    updateProgressUI();
+
+    if (album.image) {
+      nowCover.style.background = `url('${album.image}') center/cover`;
+    } else {
+      nowCover.style.background = gradient(album);
+    }
+
+    nowTitle.textContent = track.title;
+    nowArtist.textContent = album.artist;
+    highlightPlayingRow();
+
+    audioEl.src = track.src;
+    audioEl.currentTime = 0;
+    const playPromise = audioEl.play();
+    if (playPromise !== undefined) {
+      playPromise.then(() => setPlayingUI(true)).catch(fallbackToTone);
+    }
+  }
+
+  const sourceNote = document.getElementById("source-note");
+
+  audioEl.addEventListener("error", () => {
+    if (!usingTone) fallbackToTone();
+    sourceNote.textContent = "🎵 preview tone — file not found";
+  });
+
+  audioEl.addEventListener("playing", () => {
+    sourceNote.textContent = "🎧 playing your audio file";
+  });
+
+  audioEl.addEventListener("loadedmetadata", () => {
+    if (!usingTone && isFinite(audioEl.duration)) {
+      totalDuration = audioEl.duration;
+      timeEnd.textContent = secondsToTime(audioEl.duration);
+    }
+  });
+
+  audioEl.addEventListener("timeupdate", () => {
+    if (usingTone) return;
+    elapsed = audioEl.currentTime;
+    updateProgressUI();
+  });
+
+  audioEl.addEventListener("ended", () => {
+    if (!usingTone) nextTrackAuto();
+  });
+
+  function nextTrackAuto() {
+    const album = ALBUMS[currentAlbum];
+    const next = (currentTrack + 1) % album.tracks.length;
+    playTrack(currentAlbum, next);
+  }
+
+  playBtn.addEventListener("click", () => {
+    if (!nowTitle.textContent || nowTitle.textContent === "Nothing playing yet") return;
+    if (usingTone) {
+      isPlaying ? pauseTone() : resumeTone();
+    } else {
+      isPlaying ? audioEl.pause() && setPlayingUI(false) : audioEl.play().then(() => setPlayingUI(true));
+    }
+  });
+
+  function pauseTone() {
+    clearInterval(tickInterval);
+    stopTone();
+    setPlayingUI(false);
+  }
+
+  function resumeTone() {
+    startTone(ALBUMS[currentAlbum].tracks[currentTrack].freq);
+    setPlayingUI(true);
+    clearInterval(tickInterval);
+    tickInterval = setInterval(() => {
+      elapsed += 0.25;
+      if (elapsed >= totalDuration) { nextTrackAuto(); return; }
+      updateProgressUI();
+    }, 250);
+  }
+
+  audioEl.addEventListener("pause", () => { if (!usingTone) setPlayingUI(false); });
+  audioEl.addEventListener("play", () => { if (!usingTone) setPlayingUI(true); });
+
+  prevBtn.addEventListener("click", () => {
+    if (totalDuration === 0 && !nowTitle.textContent) return;
+    const album = ALBUMS[currentAlbum];
+    const prev = (currentTrack - 1 + album.tracks.length) % album.tracks.length;
+    playTrack(currentAlbum, prev);
+  });
+
+  nextBtn.addEventListener("click", () => {
+    nextTrackAuto();
+  });
+
+  progressTrack.addEventListener("click", (e) => {
+    if (!totalDuration) return;
+    const rect = progressTrack.getBoundingClientRect();
+    const pct = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    elapsed = pct * totalDuration;
+    if (usingTone) {
+      updateProgressUI();
+    } else {
+      audioEl.currentTime = elapsed;
+    }
+  });
+
+  volumeTrack.addEventListener("click", (e) => {
+    const rect = volumeTrack.getBoundingClientRect();
+    volume = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    volumeFill.style.width = `${volume * 100}%`;
+    audioEl.volume = volume;
+    if (gainNode) gainNode.gain.value = volume * 0.15;
+  });
+</script>
+</body>
+</html>
